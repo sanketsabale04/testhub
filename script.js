@@ -12,8 +12,79 @@ const sections = [
 ];
 
 const answerKey = {
-    // Add the final answer key here, e.g. 1: 'A', 2: 'C', 3: 'B', ...
+    1: 'D',
+    2: 'D',
+    3: 'B',
+    4: 'A',
+    5: 'B',
+    6: 'C',
+    7: 'B',
+    8: 'B',
+    9: 'B',
+    10: 'A',
+    11: 'B',
+    12: 'C',
+    13: 'D',
+    14: 'C',
+    15: 'A',
+    16: 'A',
+    17: 'B',
+    18: 'B',
+    19: 'C',
+    20: 'B',
+    21: 'B',
+    22: 'B',
+    23: 'D',
+    24: 'B',
+    25: 'B',
+    26: 'C',
+    27: 'A',
+    28: 'D',
+    29: 'C',
+    30: 'A',
+    31: 'B',
+    32: 'D',
+    33: 'A',
+    34: 'B',
+    35: 'D',
+    175: 'D'
 };
+
+const STORAGE_KEY = 'mocktest:state:v1';
+
+function getSavedState() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+        return null;
+    }
+}
+
+function saveState(submitted = false) {
+    const state = {
+        currentQ,
+        timeLeft,
+        userAnswers,
+        reviewStatus,
+        submitted,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function clearSavedState() {
+    localStorage.removeItem(STORAGE_KEY);
+}
+
+function loadSavedState() {
+    const saved = getSavedState();
+    if (!saved) return false;
+    if (typeof saved.timeLeft === 'number') timeLeft = saved.timeLeft;
+    if (typeof saved.currentQ === 'number' && saved.currentQ >= 1 && saved.currentQ <= totalQ) currentQ = saved.currentQ;
+    if (saved.userAnswers && typeof saved.userAnswers === 'object') userAnswers = saved.userAnswers;
+    if (saved.reviewStatus && typeof saved.reviewStatus === 'object') reviewStatus = saved.reviewStatus;
+    return saved.submitted === true;
+}
 
 // 1. Setup Sidebar Grid grouped by section
 const grid = document.getElementById('q-grid');
@@ -44,6 +115,9 @@ sections.forEach(section => {
 
 function startTimer() {
     const timerEl = document.getElementById('timer');
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
     timerInterval = setInterval(() => {
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
@@ -56,6 +130,7 @@ function startTimer() {
         const minutes = String(Math.floor((timeLeft % 3600) / 60)).padStart(2, '0');
         const seconds = String(timeLeft % 60).padStart(2, '0');
         timerEl.innerText = `${hours}:${minutes}:${seconds}`;
+        if (timeLeft % 5 === 0) saveState(false);
     }, 1000);
 }
 
@@ -85,13 +160,27 @@ function getScoreSummary() {
     const keyedQuestions = Object.keys(answerKey).map(Number);
     if (!keyedQuestions.length) return null;
     let correct = 0;
+    let incorrect = 0;
+
     keyedQuestions.forEach(q => {
-        if (userAnswers[q] && userAnswers[q] === answerKey[q]) correct += 1;
+        if (userAnswers[q]) {
+            if (userAnswers[q] === answerKey[q]) {
+                correct += 1;
+            } else {
+                incorrect += 1;
+            }
+        }
     });
+
+    const marks = correct * 4 - incorrect;
+    const maxMarks = totalQ * 4;
     return {
         correct,
+        incorrect,
         total: keyedQuestions.length,
-        percent: Math.round((correct / keyedQuestions.length) * 100),
+        marks,
+        maxMarks,
+        percent: Math.round((marks / maxMarks) * 100),
     };
 }
 
@@ -139,6 +228,7 @@ function loadQuestion(n) {
     updateOptionUI();
     updateReviewButton();
     updateAnalysis();
+    saveState(false);
 }
 
 function selectOption(val) {
@@ -147,6 +237,7 @@ function selectOption(val) {
     updatePaletteButton(currentQ);
     updateOptionUI();
     updateAnalysis();
+    saveState(false);
 }
 
 function updateOptionUI() {
@@ -160,6 +251,7 @@ function toggleReview() {
     updateReviewButton();
     updatePaletteButton(currentQ);
     updateAnalysis();
+    saveState(false);
 }
 
 function updateReviewButton() {
@@ -203,28 +295,189 @@ function updateAnalysis() {
     document.getElementById('biology-progress').innerText = `${biologyCounts.answered}/${biologyCounts.total}`;
 }
 
+function getSectionResults(section) {
+    const counts = getSectionCounts(section);
+    const keyedQuestions = Object.keys(answerKey)
+        .map(Number)
+        .filter(q => q >= section.start && q <= section.end);
+    const correct = keyedQuestions.reduce((sum, q) => (
+        userAnswers[q] && userAnswers[q] === answerKey[q] ? sum + 1 : sum
+    ), 0);
+    const incorrect = keyedQuestions.reduce((sum, q) => (
+        userAnswers[q] && userAnswers[q] !== answerKey[q] ? sum + 1 : sum
+    ), 0);
+    const marks = correct * 4 - incorrect;
+    return {
+        ...counts,
+        correct,
+        incorrect,
+        marks,
+        keyedTotal: keyedQuestions.length,
+    };
+}
+
+function getDetailedQuestionLists() {
+    const incorrectQuestions = Object.keys(answerKey)
+        .map(Number)
+        .filter(q => userAnswers[q] && userAnswers[q] !== answerKey[q]);
+
+    const unansweredQuestions = Array.from({ length: totalQ }, (_, index) => index + 1)
+        .filter(q => !userAnswers[q]);
+
+    const reviewQuestions = Object.keys(reviewStatus)
+        .filter(key => reviewStatus[key])
+        .map(Number)
+        .sort((a, b) => a - b);
+
+    return {
+        incorrectQuestions,
+        unansweredQuestions,
+        reviewQuestions,
+    };
+}
+
+function createPieChartSvg(correct, incorrect, unanswered) {
+    const total = correct + incorrect + unanswered;
+    if (total === 0) {
+        return `<div class="chart-empty">No score data available</div>`;
+    }
+
+    const angles = [
+        { label: 'Correct', value: correct, color: '#16a34a' },
+        { label: 'Incorrect', value: incorrect, color: '#dc2626' },
+        { label: 'Unanswered', value: unanswered, color: '#fbbf24' }
+    ].filter(item => item.value > 0);
+
+    let cumulative = 0;
+    const segments = angles.map(item => {
+        const start = cumulative;
+        const sweep = (item.value / total) * 360;
+        const end = start + sweep;
+        cumulative += sweep;
+        const largeArc = sweep > 180 ? 1 : 0;
+        const startRadians = (Math.PI / 180) * (start - 90);
+        const endRadians = (Math.PI / 180) * (end - 90);
+        const x1 = 100 + 100 * Math.cos(startRadians);
+        const y1 = 100 + 100 * Math.sin(startRadians);
+        const x2 = 100 + 100 * Math.cos(endRadians);
+        const y2 = 100 + 100 * Math.sin(endRadians);
+        return `<path d="M100 100 L ${x1.toFixed(2)} ${y1.toFixed(2)} A 100 100 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z" fill="${item.color}" />`;
+    }).join('');
+
+    return `
+        <svg viewBox="0 0 200 200" class="result-pie">
+            ${segments}
+            <circle cx="100" cy="100" r="60" fill="white" />
+            <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" class="pie-center-text">${Math.round((correct / total) * 100)}%</text>
+        </svg>
+        <div class="pie-legend">
+            ${angles.map(item => `<div class="pie-legend-item"><span class="legend-badge" style="background:${item.color}"></span><strong>${item.label}:</strong> ${item.value}</div>`).join('')}
+        </div>
+    `;
+}
+
 function populateResults() {
     const overall = getOverallCounts();
     const scoreSummary = getScoreSummary();
+    const detailed = getDetailedQuestionLists();
 
     document.getElementById('result-attempted').innerText = overall.answered;
     document.getElementById('result-review').innerText = overall.review;
     document.getElementById('result-unanswered').innerText = overall.unanswered;
-    document.getElementById('result-score').innerText = scoreSummary ? `${scoreSummary.correct}/${scoreSummary.total} (${scoreSummary.percent}%)` : 'Answer key not provided';
+    document.getElementById('result-score').innerText = scoreSummary
+        ? `${scoreSummary.marks}/720 (${scoreSummary.percent}%)`
+        : 'Answer key not provided';
+
+    const correctCount = scoreSummary ? scoreSummary.correct : 0;
+    const incorrectCount = scoreSummary ? scoreSummary.incorrect : 0;
+    const unansweredCount = overall.unanswered;
+    document.getElementById('result-chart').innerHTML = createPieChartSvg(correctCount, incorrectCount, unansweredCount);
+
+    document.getElementById('result-details').innerHTML = `
+        <div class="score-detail-card">
+            <div class="score-detail-row"><span>Total Marks</span><strong>${scoreSummary ? `${scoreSummary.marks}/720` : 'N/A'}</strong></div>
+            <div class="score-detail-row"><span>Correct</span><strong>${correctCount}</strong></div>
+            <div class="score-detail-row"><span>Wrong</span><strong>${incorrectCount}</strong></div>
+            <div class="score-detail-row"><span>Unattempted</span><strong>${unansweredCount}</strong></div>
+        </div>
+    `;
 
     const summaryEl = document.getElementById('section-summary');
     summaryEl.innerHTML = sections.map(section => {
-        const counts = getSectionCounts(section);
-        return `<div class="results-row"><span>${section.name}</span><strong>${counts.answered}/${counts.total} answered, ${counts.review} review</strong></div>`;
+        const sectionResult = getSectionResults(section);
+        const scoreLabel = sectionResult.keyedTotal
+            ? `${sectionResult.correct}/${sectionResult.keyedTotal}`
+            : 'N/A';
+        const percentLabel = sectionResult.keyedTotal
+            ? `${Math.round((sectionResult.marks / (sectionResult.keyedTotal * 4)) * 100)}%`
+            : 'N/A';
+        const sectionMarks = sectionResult.keyedTotal
+            ? `${sectionResult.marks}/${sectionResult.keyedTotal * 4}`
+            : 'N/A';
+
+        return `
+            <div class="section-card">
+                <div class="section-card-title">
+                    <h3>${section.name}</h3>
+                    <span class="section-percent">${percentLabel}</span>
+                </div>
+                <div class="section-card-row"><span>Attempted</span><strong>${sectionResult.answered}</strong></div>
+                <div class="section-card-row"><span>Section Marks</span><strong>${sectionMarks}</strong></div>
+                <div class="section-card-row"><span>Marked Review</span><strong>${sectionResult.review}</strong></div>
+                <div class="section-card-row"><span>Unanswered</span><strong>${sectionResult.unanswered}</strong></div>
+            </div>`;
     }).join('');
 
+    const breakdownEl = document.getElementById('section-breakdown');
+    breakdownEl.innerHTML = `
+        <div class="breakdown-card">
+            <h4>Accuracy Summary</h4>
+            <div class="results-row"><span>Correct Answers</span><strong>${scoreSummary ? scoreSummary.correct : 'N/A'}</strong></div>
+            <div class="results-row"><span>Incorrect Answers</span><strong>${scoreSummary ? scoreSummary.incorrect : 'N/A'}</strong></div>
+            <div class="results-row"><span>Unanswered Questions</span><strong>${detailed.unansweredQuestions.length}</strong></div>
+        </div>
+    `;
+
+    const questionBreakdownEl = document.getElementById('question-breakdown');
+    questionBreakdownEl.innerHTML = `
+        <div class="breakdown-card">
+            <h4>Review Checklist</h4>
+            <div class="breakdown-item"><span>Incorrect Answers</span><strong>${detailed.incorrectQuestions.length}</strong></div>
+            <div class="breakdown-item"><span>Marked for review</span><strong>${detailed.reviewQuestions.length}</strong></div>
+            <div class="breakdown-item"><span>Unanswered</span><strong>${detailed.unansweredQuestions.length}</strong></div>
+        </div>
+    `;
+
     const notesEl = document.getElementById('result-notes');
-    notesEl.innerText = scoreSummary ? 'The result calculation used the provided answer key.' : 'Fill in the answer key in script.js to see score accuracy.';
+    notesEl.innerText = scoreSummary ?
+        'The result calculation uses the answer key from the current script. Use the review list to revisit missed or unchecked questions.' :
+        'Fill in the answer key in script.js to see score accuracy on the report.';
 }
 
 function showResultsPage() {
-    document.querySelector('main').classList.add('hidden');
-    document.getElementById('results-page').classList.remove('hidden');
+    const mainContent = document.querySelector('main');
+    const resultsPage = document.getElementById('results-page');
+    if (mainContent) mainContent.classList.add('hidden');
+    if (resultsPage) {
+        resultsPage.classList.remove('hidden');
+        resultsPage.style.display = 'flex';
+    }
+    document.querySelector('header')?.classList.add('hidden');
+}
+
+function startTest() {
+    document.getElementById('welcome-page').classList.add('hidden');
+    document.querySelector('header')?.classList.remove('hidden');
+    document.querySelector('main')?.classList.remove('hidden');
+
+    if (wasSubmitted) {
+        populateResults();
+        showResultsPage();
+        return;
+    }
+
+    loadQuestion(currentQ);
+    startTimer();
 }
 
 function downloadAnswers() {
@@ -241,6 +494,8 @@ function downloadAnswers() {
 }
 
 function restartTest() {
+    clearInterval(timerInterval);
+    clearSavedState();
     window.location.reload();
 }
 
@@ -248,6 +503,7 @@ function submitTest() {
     if (!confirm('Are you sure you want to end the test?')) return;
     populateResults();
     showResultsPage();
+    saveState(true);
 }
 
 // Attach submit function to the "End Test" button
@@ -257,5 +513,5 @@ if (endButton) endButton.onclick = submitTest;
 function nextQ() { if (currentQ < totalQ) loadQuestion(currentQ + 1); }
 function prevQ() { if (currentQ > 1) loadQuestion(currentQ - 1); }
 
-loadQuestion(1); // Initialize
-startTimer();
+const wasSubmitted = loadSavedState();
+// Wait for the user to click Start before showing the quiz or starting the timer.
