@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css">
+    <title>Mock Test Platform</title>
+</head>
+<body>
+    <header>
+        <div class="logo">Radha Test</div>
+        <div id="timer">03:00:00</div>
+        <button class="end-btn">End Test</button>
+    </header>
+
+    <main>
+        <section class="question-container">
+            <div class="question-header">
+                <h2 id="q-number">Question 1</h2>
+                <div id="section-label">Section: Physics</div>
+            </div>
+            <div class="image-box">
+                <img id="question-img" src="" alt="Question Image">
+                <img id="question-img-sub" class="subpart hidden" src="" alt="Question Subpart">
+            </div>
+
+            <div class="options-container">
+                <button class="opt-btn" onclick="selectOption('A')">A</button>
+                <button class="opt-btn" onclick="selectOption('B')">B</button>
+                <button class="opt-btn" onclick="selectOption('C')">C</button>
+                <button class="opt-btn" onclick="selectOption('D')">D</button>
+            </div>
+
+            <div class="nav-controls">
+                <button onclick="prevQ()">Previous</button>
+                <button class="review-btn" id="mark-review" onclick="toggleReview()">Mark for Review</button>
+                <button class="save-btn" onclick="nextQ()">Save & Next</button>
+            </div>
+        </section>
+
+        <aside class="sidebar">
+            <h3>Instant Analysis</h3>
+            <div class="analysis-panel" id="analysis-panel">
+                <div class="analysis-row"><span>Attempted</span><span id="answered-count">0</span></div>
+                <div class="analysis-row"><span>Marked Review</span><span id="review-count">0</span></div>
+                <div class="analysis-row"><span>Unanswered</span><span id="unanswered-count">180</span></div>
+                <div class="analysis-row"><span>Current Section</span><span id="section-progress">Physics 0/45</span></div>
+                <div class="analysis-row"><span>Physics</span><span id="physics-progress">0/45</span></div>
+                <div class="analysis-row"><span>Chemistry</span><span id="chemistry-progress">0/45</span></div>
+                <div class="analysis-row"><span>Biology</span><span id="biology-progress">0/90</span></div>
+            </div>
+
+            <h3>Question Palette</h3>
+            <div class="grid" id="q-grid"></div>
+        </aside>
+    </main>
+
+    <section class="results-page hidden" id="results-page">
+        <div class="results-card">
+            <h2>Test Results</h2>
+            <div class="results-row"><span>Total Attempted</span><strong id="result-attempted">0</strong></div>
+            <div class="results-row"><span>Total Review</span><strong id="result-review">0</strong></div>
+            <div class="results-row"><span>Total Unanswered</span><strong id="result-unanswered">180</strong></div>
+            <div class="results-row"><span>Section Score</span><strong id="result-score">Not available</strong></div>
+            <div class="section-summary" id="section-summary"></div>
+            <div class="result-notes" id="result-notes"></div>
+            <div class="results-actions">
+                <button class="save-btn" onclick="downloadAnswers()">Download Answers</button>
+                <button class="review-btn" onclick="restartTest()">Restart Test</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>
