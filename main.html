@@ -5,13 +5,39 @@
     <title>Mock Test Platform</title>
 </head>
 <body>
-    <header>
+    <section class="welcome-page" id="welcome-page">
+    <div class="flower flower-1">🌸</div>
+    <div class="flower flower-2">💕</div>
+    <div class="flower flower-3">😘</div>
+    <div class="flower flower-4">🫂</div>
+
+    <div class="welcome-card">
+        <div class="welcome-content">
+            <p class="soft-hello">Hello, Radha</p>
+            <h1>A Space Created Just for You</h1>
+            
+            <div class="letter-body">
+                <p>This is a <strong>special test</strong>, prepared with a lot of care and specifically for you. It’s more than just a mock—it’s a chance to see your hard work come to life.</p>
+                
+                <p class="instruction">For the next <strong>3 hours</strong>, I ask for your focus. No distractions, no noise. Just you and your brilliant mind.</p>
+                
+                <p>Please approach this with a humble heart. I truly hope you love the challenge as much as I loved setting it up for you.</p>
+            </div>
+
+            <button class="start-btn" onclick="startTest()">Begin Your Journey</button>
+            
+            <p class="final-wish">Wishing you all the very best.</p>
+        </div>
+    </div>
+</section>
+
+    <header class="hidden">
         <div class="logo">Radha Test</div>
         <div id="timer">03:00:00</div>
         <button class="end-btn">End Test</button>
     </header>
 
-    <main>
+    <main class="hidden">
         <section class="question-container">
             <div class="question-header">
                 <h2 id="q-number">Question 1</h2>
@@ -55,12 +81,45 @@
 
     <section class="results-page hidden" id="results-page">
         <div class="results-card">
-            <h2>Test Results</h2>
-            <div class="results-row"><span>Total Attempted</span><strong id="result-attempted">0</strong></div>
-            <div class="results-row"><span>Total Review</span><strong id="result-review">0</strong></div>
-            <div class="results-row"><span>Total Unanswered</span><strong id="result-unanswered">180</strong></div>
-            <div class="results-row"><span>Section Score</span><strong id="result-score">Not available</strong></div>
-            <div class="section-summary" id="section-summary"></div>
+            <div class="results-top">
+                <div>
+                    <h2>Final Test Summary</h2>
+                    <p class="results-summary-text" id="results-header-text">A clean overview of your performance, with section-wise accuracy and review guidance.</p>
+                </div>
+                <button class="restart-btn" onclick="restartTest()">Retake Test</button>
+            </div>
+
+            <div class="results-main">
+                <aside class="results-sidebar">
+                    <div class="metric-block">
+                        <div class="metric-label">Total Score</div>
+                        <strong id="result-score">Not available</strong>
+                    </div>
+                    <div class="mini-grid">
+                        <div class="mini-card">
+                            <span>Attempted</span>
+                            <strong id="result-attempted">0</strong>
+                        </div>
+                        <div class="mini-card">
+                            <span>Review</span>
+                            <strong id="result-review">0</strong>
+                        </div>
+                        <div class="mini-card">
+                            <span>Unanswered</span>
+                            <strong id="result-unanswered">180</strong>
+                        </div>
+                    </div>
+                    <div class="chart-panel" id="result-chart"></div>
+                </aside>
+
+                <section class="results-body">
+                    <div class="score-details" id="result-details"></div>
+                    <div class="section-summary" id="section-summary"></div>
+                    <div class="section-breakdown" id="section-breakdown"></div>
+                    <div class="question-breakdown" id="question-breakdown"></div>
+                </section>
+            </div>
+
             <div class="result-notes" id="result-notes"></div>
             <div class="results-actions">
                 <button class="save-btn" onclick="downloadAnswers()">Download Answers</button>
